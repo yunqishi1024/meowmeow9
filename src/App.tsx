@@ -4151,11 +4151,15 @@ setPendingSearchMessageId(null);
         signal: controller.signal,
       };
 
+
       for (let round = 0; round < MAX_MCP_TOOL_ROUNDS; round += 1) {
-        const requestForRound = {
-          ...commonRequest,
+        const requestForRound = {			
+			...commonRequest,
           messages: modelMessages,
         };
+
+	    if (round > 0) alert(`第${round+1}轮 modelMessages:\n` + JSON.stringify(modelMessages.map(m => ({role: m.role, hasContent: !!m.content, hasToolCalls: !!(m as any).tool_calls, toolCallId: (m as any).tool_call_id})), null, 2));
+		  
         const gatewayRunId = aiGatewayEnabled
           ? newAiGatewayRunId(assistantMessageId, round)
           : null;
