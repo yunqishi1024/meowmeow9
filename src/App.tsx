@@ -4324,15 +4324,21 @@ setPendingSearchMessageId(null);
           break;
         }
 
-        modelMessages = [
-          ...modelMessages,
-          {
-            role: "assistant",
-            content: roundText || null,
-			...(roundThinking ? { reasoning_content: roundThinking } : {}),  // 新增
-            tool_calls: toolCalls,
-          },
-        ];
+
+		modelMessages = [
+		  ...modelMessages,
+		  {
+		    role: "assistant",
+ 		   content: roundText || null,
+ 		   tool_calls: toolCalls,
+ 		   ...(roundThinking
+  		    ? {
+   		       reasoning_content: roundThinking,  // DeepSeek 要求
+  		        reasoning: roundThinking,           // OpenRouter / 通用
+   		     }
+  		    : {}),
+		  },
+		];	
 
         for (const toolCall of toolCalls) {
           const activeTool = mcpToolByName.get(toolCall.function.name);
