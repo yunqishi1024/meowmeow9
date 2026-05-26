@@ -1111,22 +1111,39 @@ async function generatePinSummary(
 
   const response = await provider.sendMessage({
     model,
-    maxTokens: 2048,
-    temperature: 0.3,
+    maxTokens: 1500,
+    temperature: 0.2,
     messages: [
       {
         role: "user",
         content:
-          "You are a conversation summarizer. Create a comprehensive but concise summary of the conversation below. " +
-          "Preserve key facts, decisions, code snippets references, and context needed to continue the conversation. " +
-          "Use the conversation's main language. Output only the summary, no preamble.\n\n" +
+          "Your task is to compress this conversation into a structured note, so the AI can continue the conversation later without seeing the original messages. " +
+          "Both factual content AND the emotional/tonal texture must be preserved — but as structured observations, NOT as narrative or first-person rewriting.\n\n" +
+          "First, think inside <analysis></analysis>: go through the conversation chronologically, noting topic shifts, emotional shifts, and tone changes.\n\n" +
+          "Then output the final note inside <summary></summary> with these sections (use the conversation's main language for content; keep headers in English):\n\n" +
+          "1. **Setting**: Who is talking to whom (role/persona if any), what kind of conversation this is (e.g. casual chat, roleplay, debugging, emotional support). 1-2 lines.\n\n" +
+          "2. **Key Facts & Decisions**: Bullet list of facts, names, plot points, decisions, or established context the AI must remember.\n\n" +
+          "3. **User Style & Preferences**: How the user writes and wants to be talked to — formality, length, language quirks, things to avoid. Stable traits only.\n\n" +
+          "4. **Emotional Arc**: Bullet list, third person, in chronological order. Each bullet = one shift, format: `[turn marker] user/assistant tone shifted from X to Y, because Z`.\n\n" +
+          "5. **Current Emotional State**: One paragraph (2-3 sentences) describing the user's current mood, what tone the assistant has been using, and what register the next reply should match. This is the most important section for continuity — be specific.\n\n" +
+          "6. **Recent Turns**: List the last 3-5 exchanges. For each: `User (tone): paraphrased content` and `Assistant (tone): paraphrased content`. Tone in parentheses captures the feel (e.g. 'playful', 'pleading', 'careful', 'matter-of-fact'). Content stays factual.\n\n" +
+          "7. **Pending**: What was just asked / what the AI was about to do, or 'awaiting user'.\n\n" +
+          "Rules:\n" +
+          "- Always third person. Never write as the user or the character. Never first-person narration.\n" +
+          "- Emotion is described, not performed. Say 'user expressed frustration', not 'I was so frustrated...'\n" +
+          "- Target 400-700 tokens for the <summary> block. Emotional arc deserves the extra space.\n" +
+          "- Drop greetings and pure small talk, but KEEP moments where tone visibly shifted.\n" +
+          "- Output only the <analysis> and <summary> blocks. No preamble.\n\n" +
+          "Conversation:\n" +
           contextPrefix +
           conversationText.slice(0, 50000),
       },
     ],
   });
 
-  return contentBlocksToPlainText(response.content, true);
+  const raw = contentBlocksToPlainText(response.content, true);
+  const match = raw.match(/<summary>([\s\S]*?)<\/summary>/i);
+  return (match ? match[1] : raw).trim();
 }
 
 
