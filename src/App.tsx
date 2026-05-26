@@ -4224,7 +4224,13 @@ setPendingSearchMessageId(null);
               : null,
             userStyle: userStyle.trim() || undefined,
             injectCurrentTime: requestForRound.messages.length > 0 && injectCurrentTime,
-            messages: promptMessages,
+            messages: promptMessages.map((m) => ({
+               id: m.id,
+               role: m.role,
+               content: Array.isArray(m.content)
+                  ? requestContentFromBlocks(m.content)
+                  : m.content,
+            })),
             // 工具循环的第 2 轮起：modelMessages 已经包含本地执行的 tool 结果，
             // 必须原样透传给上游，否则模型看不到工具返回会无限重复调用。
             // 第 1 轮 (round === 0) 不传，让 Worker 按常规组装 system/pin/style/depth。
