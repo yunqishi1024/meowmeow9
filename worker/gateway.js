@@ -168,9 +168,15 @@ async function handleGenerate(request, env, cors, namespace, options) {
   const systemContent = buildSystemContent(payload);
 
   // ─── 2. Assemble messages ──────────────────────────────────────────────
-  const modelMessages = Array.isArray(payload.overrideMessages) && payload.overrideMessages.length > 0
-    ? payload.overrideMessages
-    : buildModelMessages(payload);
+  const modelMessages = (Array.isArray(payload.overrideMessages) && payload.overrideMessages.length > 0)
+  ? payload.overrideMessages.map(m => {
+      if (m.role === "assistant" && m.content == null && m.tool_calls?.length) {
+        // 给空 content 一个占位,避免上游误判"空回复"
+        return { ...m, content: m.reasoning_content ? `[reasoning]` : "" };
+      }
+      return m;
+    })
+  : buildModelMessages(payload);
 
   // ─── 3. Build request body ─────────────────────────────────────────────
   const requestBody = buildUpstreamRequestBody(payload, systemContent, modelMessages);
