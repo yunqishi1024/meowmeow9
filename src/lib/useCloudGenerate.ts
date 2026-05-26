@@ -76,6 +76,24 @@ export async function cloudGenerate(
   params: CloudGenerateParams,
   callbacks: CloudGenerateCallbacks,
 ): Promise<{ runId: string }> {
+  // 把 StoredMessage[] 转成网关接受的形状:滤掉 thinking 块,只保留 text / image
+  const gatewayMessages = params.messages.map((m) => {
+    if (typeof m.content === "string") {
+      return { id: m.id, role: m.role, content: m.content };
+    }
+    const parts = m.content
+      .filter((b: any) => b.type === "text" || b.type === "image")
+      .map((b: any) => {
+        if (b.type === "text") {
+          return { type: "text" as const, text: b.text };
+        }
+        // image 块原样保留(字段对齐 ChatContentPart 的 image 形状)
+        const { type, ...rest } = b;
+        return { type: "image" as const, ...rest };
+      });
+    return { id: m.id, role: m.role, content: parts };
+  });
+
   const request: CloudGenerateRequest = {
     upstream: {
       baseUrl: params.providerConfig.baseUrl,
@@ -85,7 +103,7 @@ export async function cloudGenerate(
     agent: params.agent,
     userStyle: params.userStyle,
     injectCurrentTime: params.injectCurrentTime,
-    messages: params.messages,
+    messages: gatewayMessages,    // ← 改这里!从 params.messages 换成 gatewayMessages
     pinnedSummary: params.pinnedSummary,
     historyDepth: params.historyDepth,
     temperature: params.temperature,
