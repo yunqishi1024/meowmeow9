@@ -4,7 +4,7 @@
  * 前端调用云端网关的所有 API 封装。
  * 取代原来前端直连 AI provider 的方式。
  */
-import type { ChatContentPart } from "./providers";
+import type { ChatContentPart } from "../providers";
 import type { SyncSettings, StoredMessage, Conversation } from "./storage";
 import type { ProviderConfig, ChatStreamChunk } from "../providers/types";
 import { OpenAICompatibleProvider } from "../providers/OpenAICompatibleProvider";
