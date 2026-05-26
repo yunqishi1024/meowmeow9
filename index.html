@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Cedar Chat" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Cedar Chat</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      async function prepareServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+
+        if (import.meta.env.PROD) {
+          window.addEventListener("load", () => {
+            navigator.serviceWorker.register("/sw.js").catch(() => {});
+          });
+          return;
+        }
+
+        if (import.meta.env.DEV) {
+          await navigator.serviceWorker
+            .getRegistrations()
+            .then((registrations) =>
+              Promise.all(
+                registrations.map((registration) => registration.unregister()),
+              ),
+            )
+            .catch(() => {});
+          if ("caches" in window) {
+            await caches
+              .keys()
+              .then((keys) =>
+                Promise.all(
+                  keys
+                    .filter((key) => key.startsWith("cedar-chat-"))
+                    .map((key) => caches.delete(key)),
+                ),
+              )
+              .catch(() => {});
+          }
+        }
+      }
+
+      await prepareServiceWorker();
+      await import("/src/main.tsx");
+    </script>
+  </body>
+</html>

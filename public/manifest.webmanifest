@@ -1,0 +1,25 @@
+{
+  "name": "Cedar Chat",
+  "short_name": "Cedar",
+  "description": "A personal AI chat client for Cedar conversations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fbff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
