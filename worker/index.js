@@ -321,7 +321,9 @@ async function handleCloudGenerate(request, env, cors, namespace, options) {
   const systemContent = buildSystemContent(payload);
 
   // 2. Assemble messages (pin/summary + historyDepth + style)
-  const modelMessages = buildModelMessages(payload);
+  const modelMessages = Array.isArray(payload.overrideMessages) && payload.overrideMessages.length > 0
+  ? payload.overrideMessages
+  : buildModelMessages(payload);
 
   // 3. Build upstream request body
   const requestBody = buildUpstreamRequestBody(payload, systemContent, modelMessages);
@@ -357,10 +359,13 @@ async function handleCloudGenerate(request, env, cors, namespace, options) {
   await putObject(env, runKey, runRecord);
 
   // 5. Persist user message
-  const userMessage = messages[messages.length - 1];
-  if (userMessage && userMessage.role === "user") {
-    await persistMessage(env, gwNamespace, conversationId, userMessage);
+  if (!(Array.isArray(payload.overrideMessages) && payload.overrideMessages.length > 0)) {
+    const userMessage = messages[messages.length - 1];
+    if (userMessage && userMessage.role === "user") {
+      await persistMessage(env, gwNamespace, conversationId, userMessage);
+    }
   }
+
 
   // 6. Call upstream and stream back
   const upstreamBaseUrl = upstream.baseUrl.replace(/\/+$/, "");
