@@ -31,7 +31,7 @@ const AI_PREFIX = "/ai";
 const AI_RUN_PATTERN = /^\/ai\/runs\/([A-Za-z0-9_-]{8,220})(\/stream)?$/;
 const CONVERSATIONS_PREFIX = "/conversations";
 
-const STREAM_SAVE_INTERVAL_MS = 1000;
+const STREAM_SAVE_INTERVAL_MS = 5000;
 
 export default {
   fetch(request, env, ctx) {
@@ -356,13 +356,18 @@ async function handleCloudGenerate(request, env, cors, namespace, options) {
     pendingToolRequest: null,
   };
 
-  await putObject(env, runKey, runRecord);
+  options.ctx?.waitUntil?.(putObject(env, runKey, runRecord).catch(() => {}));
 
   // 5. Persist user message
+  // 5. Persist user message — 同步写,保证不丢
   if (!(Array.isArray(payload.overrideMessages) && payload.overrideMessages.length > 0)) {
     const userMessage = messages[messages.length - 1];
     if (userMessage && userMessage.role === "user") {
-      await persistMessage(env, gwNamespace, conversationId, userMessage);
+      try {
+        await persistMessage(env, gwNamespace, conversationId, userMessage);
+      } catch {
+        // 写失败也不阻塞主流程,localStorage 还有一份兜底
+     }
     }
   }
 
@@ -441,12 +446,12 @@ async function pipeCloudStreamToClientAndR2(upstreamResponse, writable, env, run
   let clientOpen = true;
   let lastSavedAt = 0;
 
-  async function save(status = runRecord.status) {
-    runRecord.status = status;
-    runRecord.updatedAt = new Date().toISOString();
-    await putObject(env, runKey, runRecord);
-    lastSavedAt = Date.now();
-  }
+function save(status = runRecord.status) {
+  runRecord.status = status;
+  runRecord.updatedAt = new Date().toISOString();
+  putObject(env, runKey, runRecord).catch(() => {});
+  lastSavedAt = Date.now();
+}
 
   try {
     while (true) {
@@ -470,7 +475,7 @@ async function pipeCloudStreamToClientAndR2(upstreamResponse, writable, env, run
 
       // Persist periodically
       if (Date.now() - lastSavedAt >= STREAM_SAVE_INTERVAL_MS) {
-        await save("streaming");
+        save("streaming");
       }
     }
 
@@ -552,16 +557,13 @@ function parseSSEChunks(text, runRecord) {
 // ─── System Prompt Assembly ────────────────────────────────────────────────
 
 function buildSystemContent(payload) {
+  const { agent } = payload;   // ← 加回这一行
   const parts = [];
 
   if (agent?.profile) parts.push(agent.profile);
   if (agent?.memory) parts.push(`<memory>\n${agent.memory}\n</memory>`);
   if (agent?.instructions) parts.push(agent.instructions);
   if (agent?.worldBook) parts.push(`<world-book>\n${agent.worldBook}\n</world-book>`);
-
-  if (injectCurrentTime) {
-    parts.push(`Current time: ${new Date().toISOString()}`);
-  }
 
   return parts.length > 0 ? parts.join("\n\n") : undefined;
 }
