@@ -4240,6 +4240,7 @@ setPendingSearchMessageId(null);
         }
         let roundText = "";
         let toolCalls: ChatToolCall[] = [];
+        let roundThinking = "";  
 
         for await (const chunk of stream) {
           if (chunk.usage) finalUsage = mergeUsage(finalUsage, chunk.usage);
@@ -4252,6 +4253,7 @@ setPendingSearchMessageId(null);
           if (chunk.kind === "text") {
             textBuf += chunk.delta;
             roundText += chunk.delta;
+			roundThinking += chunk.delta;
           }
 
           queueAssistantBlocks(
@@ -4323,6 +4325,7 @@ setPendingSearchMessageId(null);
           {
             role: "assistant",
             content: roundText || null,
+			...(roundThinking ? { reasoning_content: roundThinking } : {}),  // 新增
             tool_calls: toolCalls,
           },
         ];
