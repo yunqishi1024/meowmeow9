@@ -1,5 +1,5 @@
 /**
- * Cloud Gateway Client
+ * Cloud Gateway Clien  t
  *
  * 前端调用云端网关的所有 API 封装。
  * 取代原来前端直连 AI provider 的方式。
@@ -27,7 +27,11 @@ export interface CloudGenerateRequest {
   injectCurrentTime?: boolean;
 
   // Messages & history control
-  messages: StoredMessage[];
+  messages: Array<{
+    id: string;
+    role: "user" | "assistant" | "system";
+    content: string | ChatContentPart[];
+  }>;
   pinnedSummary?: { text: string; pinnedAtMessageId: string } | null;
   historyDepth: number | "all";
 
