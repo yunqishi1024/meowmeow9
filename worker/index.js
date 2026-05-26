@@ -552,7 +552,6 @@ function parseSSEChunks(text, runRecord) {
 // ─── System Prompt Assembly ────────────────────────────────────────────────
 
 function buildSystemContent(payload) {
-  const { agent, injectCurrentTime } = payload;
   const parts = [];
 
   if (agent?.profile) parts.push(agent.profile);
@@ -616,7 +615,19 @@ function buildModelMessages(payload) {
     }
   }
 
-  return assembled;
+
+  // 在 userStyle 注入那段后面追加:
+  if (payload.injectCurrentTime) {
+    const timeText = `<current-time>${new Date().toISOString()}</current-time>`;
+    const lastUserIdx = assembled.map(m => m.role).lastIndexOf("user");
+    if (lastUserIdx >= 0) {
+      const msg = assembled[lastUserIdx];
+      const parts = Array.isArray(msg.content) ? [...msg.content] : [{ type: "text", text: msg.content ?? "" }];
+      parts.push({ type: "text", text: timeText });
+      assembled[lastUserIdx] = { ...msg, content: parts };
+    }
+  }
+   return assembled;
 }
 
 // ─── Upstream Request Body ─────────────────────────────────────────────────
